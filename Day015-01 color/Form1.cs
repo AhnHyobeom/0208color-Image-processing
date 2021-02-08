@@ -22,10 +22,20 @@ namespace Day015_01_color
         int inH, inW, outH, outW;
         string fileName;
         Bitmap paper, bitmap;
-        const int RGB = 3, RR = 0, GG = 1, BB = 2;
-        bool mouseYN = false;
+        const int RGB = 3, RR = 0, GG = 1, BB = 2, LISTSIZE = 7;
+        bool mouseYN = false, isUndo = false;
         int mouseSX, mouseSY, mouseEX, mouseEY;
+        List<byte[,,]> undoList = new List<byte[,,]>();
+        List<byte[,,]> redoList = new List<byte[,,]>();
         //메뉴 이벤트 처리부
+        private void 실행취소ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            undoImage();
+        }
+        private void 다시실행ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            redoImage();
+        }
         private void 저장ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             saveImage();
@@ -80,6 +90,12 @@ namespace Day015_01_color
                         openImage();
                         break;
                     case Keys.S:
+                        break;
+                    case Keys.Z:
+                        undoImage();
+                        break;
+                    case Keys.Y:
+                        redoImage();
                         break;
                 }
             }
@@ -168,7 +184,7 @@ namespace Day015_01_color
             rotateImage();
         }
         //공통 함수부
-        void saveImage()
+        void saveImage() //미구현 함수 누르면 오류발생
         {
             SaveFileDialog sfd = new SaveFileDialog();
             sfd.DefaultExt = "";
@@ -207,7 +223,6 @@ namespace Day015_01_color
                     inImage[BB, i, j] = c.B;
                 }
             }
-
             equal_image();
         }
         void equal_image()
@@ -233,6 +248,15 @@ namespace Day015_01_color
         }
         void displayImage()
         {
+            if (!isUndo)//undo로 접근하지 않았을때
+            {
+                redoList.Clear();//새로운 작업시 리스트를 초기화
+                if (undoList.Count == LISTSIZE)
+                {//LISTSIZE이상 저장하지 않음
+                    undoList.RemoveAt(0);
+                }
+                undoList.Add(outImage);
+            }
             // 벽, 게시판, 종이 크기 조절
             paper = new Bitmap(outH, outW); // 종이
             pictureBox1.Size = new Size(outH, outW); // 캔버스
@@ -251,6 +275,7 @@ namespace Day015_01_color
                 }
             }
             pictureBox1.Image = paper; // 게시판에 종이를 붙이기.
+            //실행 취소 -> 파일경로 구현 못함
             toolStripStatusLabel1.Text =
                 outH.ToString() + "x" + outW.ToString() + "  " + fileName;
         }
@@ -622,25 +647,15 @@ namespace Day015_01_color
             fillEdges(tmpInput, inputCopy);
             //마스크연산
             maskOP(tmpInput, tmpOutput, mask);
+            var findAvg = calculImage();
             //후처리
-            long sumR = 0, sumG = 0, sumB = 0;
             for (int i = 0; i < inH; i++)
             {
                 for (int j = 0; j < inW; j++)
                 {
-                    sumR += inImage[RR, i, j];
-                    sumG += inImage[GG, i, j];
-                    sumB += inImage[BB, i, j];
-                }
-            }
-
-            for (int i = 0; i < inH; i++)
-            {
-                for (int j = 0; j < inW; j++)
-                {
-                    tmpOutput[RR, i, j] += sumR / (double)(inH * inW);
-                    tmpOutput[GG, i, j] += sumG / (double)(inH * inW);
-                    tmpOutput[BB, i, j] += sumB / (double)(inH * inW);
+                    tmpOutput[RR, i, j] += findAvg.rAvg;
+                    tmpOutput[GG, i, j] += findAvg.gAvg;
+                    tmpOutput[BB, i, j] += findAvg.bAvg;
                 }
             }
             //임시 출력 -> 원래 출력
@@ -1006,7 +1021,11 @@ namespace Day015_01_color
             HistoForm hform = new HistoForm(rHisto, gHisto, bHisto);
             hform.ShowDialog();
         }
-        private (byte rMin, byte rMax, byte gMin, byte gMax, byte bMin, byte bMax) findRGBMinMax()
+        //이미지 최대, 최소, 합계, 평균값 반환 함수
+        private (byte rMin, byte rMax, byte gMin, 
+            byte gMax, byte bMin, byte bMax, 
+            long rSum, long gSum, long bSum, 
+            double rAvg, double gAvg, double bAvg) calculImage()
         {
             byte rMin = 255;
             byte rMax = 0;
@@ -1014,10 +1033,16 @@ namespace Day015_01_color
             byte gMax = 0;
             byte bMin = 255;
             byte bMax = 0;
-            for(int i = 0; i < inImage.GetLength(1); i++)
+            long rSum = 0;
+            long gSum = 0;
+            long bSum = 0;
+            for(int i = 0; i < inH; i++)
             {
-                for(int j = 0; j < inImage.GetLength(2); j++)
+                for(int j = 0; j < inW; j++)
                 {
+                    rSum += inImage[RR, i, j];
+                    gSum += inImage[GG, i, j];
+                    bSum += inImage[BB, i, j];
                     if (rMin > inImage[RR, i, j])
                     {
                         rMin = inImage[RR, i, j];
@@ -1044,7 +1069,10 @@ namespace Day015_01_color
                     }
                 }
             }
-            return (rMin, rMax, gMin, gMax, bMin, bMax);
+            double rAvg = rSum / ((double)inH * inW);
+            double gAvg = gSum / ((double)inH * inW);
+            double bAvg = bSum / ((double)inH * inW);
+            return (rMin, rMax, gMin, gMax, bMin, bMax, rSum, gSum, bSum, rAvg, gAvg, bAvg);
         }
         void stretching()
         {
@@ -1053,7 +1081,7 @@ namespace Day015_01_color
             outH = inH;
             outW = inW;
             outImage = new byte[RGB, outH, outW];
-            var findMinMax = findRGBMinMax();
+            var findMinMax = calculImage();
             byte rMin = findMinMax.rMin;
             byte rMax = findMinMax.rMax;
             byte gMin = findMinMax.gMin;
@@ -1071,7 +1099,6 @@ namespace Day015_01_color
             }
             displayImage();
         }
-
         void endInSearch()
         {
             if (inImage == null)
@@ -1079,7 +1106,7 @@ namespace Day015_01_color
             outH = inH;
             outW = inW;
             outImage = new byte[RGB, outH, outW];
-            var findMinMax = findRGBMinMax();
+            var findMinMax = calculImage();
             int rMin = findMinMax.rMin - 50;
             int rMax = findMinMax.rMax + 50;
             int gMin = findMinMax.gMin - 50;
@@ -1181,6 +1208,32 @@ namespace Day015_01_color
                 }
             }
             displayImage();
+        }
+        void undoImage()
+        {
+            if(undoList.Count < 2)
+            {
+                return;
+            }
+            redoList.Add(undoList[undoList.Count - 1]);
+            undoList.RemoveAt(undoList.Count - 1);
+            inImage = (byte[,,])undoList[undoList.Count - 1].Clone();
+            isUndo = true;
+            equal_image();
+            isUndo = false;
+        }
+        void redoImage()
+        {
+            if (redoList.Count < 1)
+            {
+                return;
+            }
+            undoList.Add(redoList[redoList.Count - 1]);
+            inImage = (byte[,,])undoList[undoList.Count - 1].Clone();
+            redoList.RemoveAt(redoList.Count - 1);
+            isUndo = true;
+            equal_image();
+            isUndo = false;
         }
     }
 }
