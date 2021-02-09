@@ -16,6 +16,7 @@ namespace Day015_01_color
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new Intro());
             Application.Run(new Form1());
         }
     }

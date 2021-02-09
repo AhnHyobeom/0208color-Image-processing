@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using System.Drawing.Imaging;
 
 namespace Day015_01_color
 {
@@ -86,30 +87,16 @@ namespace Day015_01_color
             {
                 switch (e.KeyCode)
                 {
-                    case Keys.O:
+                    case Keys.O://열기
                         openImage();
                         break;
-                    case Keys.S:
+                    case Keys.S://저장
                         break;
-                    case Keys.Z:
+                    case Keys.Z://실행 취소
                         undoImage();
                         break;
-                    case Keys.Y:
+                    case Keys.Y://다시 실행
                         redoImage();
-                        break;
-                }
-            }
-            if (e.Alt)
-            {
-                switch (e.KeyCode)
-                {
-                    case Keys.E:
-                        break;
-                    case Keys.B:
-                        break;
-                    case Keys.S:
-                        break;
-                    case Keys.M:
                         break;
                 }
             }
@@ -184,17 +171,29 @@ namespace Day015_01_color
             rotateImage();
         }
         //공통 함수부
-        void saveImage() //미구현 함수 누르면 오류발생
+        void saveImage()
         {
             SaveFileDialog sfd = new SaveFileDialog();
             sfd.DefaultExt = "";
-            sfd.Filter = "칼라 필터 | *.png;*.jpg;*.bmp;*.tif;";
+            sfd.Filter = "PNG File(*.png) | *.png";
             if (sfd.ShowDialog() != DialogResult.OK)
-            {
                 return;
-            }
-            string saveFname = sfd.FileName;
-            pictureBox1.Image.Save(fileName);
+            String saveFname = sfd.FileName;
+            Bitmap image = new Bitmap(outH, outW); // 빈 비트맵(종이) 준비
+            for (int i = 0; i < outH; i++)
+                for (int k = 0; k < outW; k++)
+                {
+                    Color c;
+                    int r, g, b;
+                    r = outImage[RR, i, k];
+                    g = outImage[GG, i, k];
+                    b = outImage[BB, i, k];
+                    c = Color.FromArgb(r, g, b);
+                    image.SetPixel(i, k, c);  // 종이에 콕콕 찍기
+                }
+            // 상단에 using System.Drawing.Imaging; 추가해야 함
+            image.Save(saveFname, ImageFormat.Png); // 종이를 PNG로 저장
+            toolStripStatusLabel1.Text = saveFname + "으로 저장됨.";
         }
         void openImage()
         {
@@ -233,12 +232,17 @@ namespace Day015_01_color
             }
             // 중요! 출력이미지의 높이, 폭을 결정  --> 알고리즘에 영향
             outH = inH; outW = inW;
+            if(isUndo)
+            {
+                outH = inImage.GetLength(1);
+                outW = inImage.GetLength(2);
+            }
             outImage = new byte[RGB, outH, outW];
             for (int rgb = 0; rgb < RGB; rgb++)
             {
-                for (int i = 0; i < inH; i++)
+                for (int i = 0; i < outH; i++)
                 {
-                    for (int j = 0; j < inW; j++)
+                    for (int j = 0; j < outW; j++)
                     {
                         outImage[rgb, i, j] = inImage[rgb, i, j];
                     }
@@ -257,11 +261,26 @@ namespace Day015_01_color
                 }
                 undoList.Add(outImage);
             }
-            // 벽, 게시판, 종이 크기 조절
-            paper = new Bitmap(outH, outW); // 종이
-            pictureBox1.Size = new Size(outH, outW); // 캔버스
-            this.Size = new Size(outH + 20, outW + 80); // 벽
-
+            // 벽, 게시판, 종이 크기 조절    900, 600
+            int paperH, paperW;
+            if(outH <= 900)
+            {
+                paperH = 900;
+            } else
+            {
+                paperH = outH;
+            }
+            if(outW <= 600)
+            {
+                paperW = 600;
+            } else
+            {
+                paperW = outW;
+            }
+            paper = new Bitmap(paperH, paperW); // 종이
+            pictureBox1.Size = new Size(paperH, paperW); // 캔버스
+            this.Size = new Size(paperH + 20, paperW + 80); // 벽
+            int row = 0, col = 0;
             Color pen; // 펜(콕콕 찍을 용도)
             for (int i = 0; i < outH; i++)
             {
@@ -271,7 +290,17 @@ namespace Day015_01_color
                     byte g = outImage[GG,i, j]; // 잉크(색상값)
                     byte b = outImage[BB,i, j]; // 잉크(색상값)
                     pen = Color.FromArgb(r, g, b); // 펜에 잉크 묻히기
-                    paper.SetPixel(i, j, pen); // 종이에 콕 찍기
+                    row = i;
+                    col = j;
+                    if (outH <= 900)
+                    {
+                        row = i + (900 - outH) / 2;
+                    }
+                    if (outW <= 600)
+                    {
+                        col = j + (600 - outW) / 2;
+                    } 
+                    paper.SetPixel(row, col, pen); // 종이에 콕 찍기
                 }
             }
             pictureBox1.Image = paper; // 게시판에 종이를 붙이기.
@@ -908,7 +937,7 @@ namespace Day015_01_color
             displayImage();
         }
         void medianFilter()
-        {//노이즈 제거 알고리즘 노이즈 이미지 저장기능 구현하지 않음
+        {//노이즈 제거 알고리즘 
             if (inImage == null)
             {
                 return;
