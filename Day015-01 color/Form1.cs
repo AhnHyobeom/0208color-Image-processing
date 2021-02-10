@@ -29,6 +29,10 @@ namespace Day015_01_color
         List<byte[,,]> undoList = new List<byte[,,]>();
         List<byte[,,]> redoList = new List<byte[,,]>();
         //메뉴 이벤트 처리부
+        private void 채도변경ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            change_satur();
+        }
         private void 실행취소ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             undoImage();
@@ -279,7 +283,7 @@ namespace Day015_01_color
             }
             paper = new Bitmap(paperH, paperW); // 종이
             pictureBox1.Size = new Size(paperH, paperW); // 캔버스
-            this.Size = new Size(paperH + 20, paperW + 80); // 벽
+            this.Size = new Size(paperH, paperW + 105); // 벽
             int row = 0, col = 0;
             Color pen; // 펜(콕콕 찍을 용도)
             for (int i = 0; i < outH; i++)
@@ -337,7 +341,6 @@ namespace Day015_01_color
             {
                 return;
             }
-            // 중요! 출력이미지의 높이, 폭을 결정  --> 알고리즘에 영향
             outH = inH; outW = inW;
             outImage = new byte[RGB, outH, outW];
             int value = (int)getValue();
@@ -368,7 +371,6 @@ namespace Day015_01_color
             {
                 return;
             }
-            // 중요! 출력이미지의 높이, 폭을 결정  --> 알고리즘에 영향
             outH = inH; outW = inW;
             outImage = new byte[RGB, outH, outW];
             for (int i = 0; i < inH; i++)
@@ -452,6 +454,120 @@ namespace Day015_01_color
                 }
             }
             displayImage();
+        }
+        void change_satur()
+        {
+            if (inImage == null)
+            {
+                return;
+            }
+            outH = inH; outW = inW;
+            outImage = new byte[RGB, outH, outW];
+            Color c;//한점 색상
+            double hh, ss, vv;//색상, 채도, 밝기
+            int rr, gg, bb;//red, green, blue
+            double value = getValue();
+            for (int i = 0; i < outH; i++)
+            {
+                for (int j = 0; j < outW; j++)
+                {
+                    rr = inImage[RR, i, j];
+                    gg = inImage[GG, i, j];
+                    bb = inImage[BB, i, j];
+                    //RGB -> HSV(HSB)
+                    c = Color.FromArgb(rr, gg, bb);
+                    hh = c.GetHue();
+                    ss = c.GetSaturation();
+                    vv = c.GetBrightness();
+
+                    //(핵심!)채도 올리기
+                    ss += value;
+                    //HSV -> RGB
+                    HsvToRgb(hh, ss, vv, out rr, out gg, out bb);
+                    outImage[RR, i, j] = (byte)rr;
+                    outImage[GG, i, j] = (byte)gg;
+                    outImage[BB, i, j] = (byte)bb;
+                }
+            }
+            displayImage();
+        }
+        void HsvToRgb(double h, double S, double V, out int r, out int g, out int b)
+        {
+            double H = h;
+            while (H < 0) { H += 360; };
+            while (H >= 360) { H -= 360; };
+            double R, G, B;
+            if (V <= 0)
+            { R = G = B = 0; }
+            else if (S <= 0)
+            {
+                R = G = B = V;
+            }
+            else
+            {
+                double hf = H / 60.0;
+                int i = (int)Math.Floor(hf);
+                double f = hf - i;
+                double pv = V * (1 - S);
+                double qv = V * (1 - S * f);
+                double tv = V * (1 - S * (1 - f));
+                switch (i)
+                {
+                    case 0:
+                        R = V;
+                        G = tv;
+                        B = pv;
+                        break;
+                    case 1:
+                        R = qv;
+                        G = V;
+                        B = pv;
+                        break;
+                    case 2:
+                        R = pv;
+                        G = V;
+                        B = tv;
+                        break;
+                    case 3:
+                        R = pv;
+                        G = qv;
+                        B = V;
+                        break;
+                    case 4:
+                        R = tv;
+                        G = pv;
+                        B = V;
+                        break;
+                    case 5:
+                        R = V;
+                        G = pv;
+                        B = qv;
+                        break;
+                    case 6:
+                        R = V;
+                        G = tv;
+                        B = pv;
+                        break;
+                    case -1:
+                        R = V;
+                        G = pv;
+                        B = qv;
+                        break;
+                    default:
+                        R = G = B = V;
+                        break;
+                }
+            }
+            r = CheckRange((int)(R * 255.0));
+            g = CheckRange((int)(G * 255.0));
+            b = CheckRange((int)(B * 255.0));
+
+            int CheckRange(int i)
+            {
+                if (i < 0) return 0;
+                if (i > 255) return 255;
+                return i;
+            }
         }
         void sizeUpImage()
         {//확대 알고리즘
@@ -973,7 +1089,7 @@ namespace Day015_01_color
                 }
             }
             displayImage();
-            Delay(3000);
+            Delay(2000);
             fillEdges(tmpInput, inputCopy);
             int sortSize = 5;
             byte[] medianSort = new byte[sortSize * sortSize];//정렬을 위한 1차원 배열

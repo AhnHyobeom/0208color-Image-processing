@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Day015-01 color", "Day015-01 color\Day015-01 color.csproj", "{0794C53E-3EEA-4ECF-B182-09DD0AF1B0C2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "미니프로젝트2.0(color)", "Day015-01 color\미니프로젝트2.0(color).csproj", "{0794C53E-3EEA-4ECF-B182-09DD0AF1B0C2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
