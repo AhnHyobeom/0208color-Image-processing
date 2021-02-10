@@ -659,49 +659,51 @@ namespace Day015_01_color
             }
             displayImage();
         }
-        void fillEdges(double[,,] tmpInput, double[,,] inputCopy)
-        {//가장자리 처리 알고리즘 5x5 마스크 전용
+        void fillEdges(double[,,] tmpInput, double[,,] inputCopy, int maskLength)
+        {//가장자리 처리 알고리즘, 정사각형 마스크는 모두 처리 가능
+            int full = maskLength - 1;
+            int half = maskLength / 2;
             for (int rgb = 0; rgb < RGB; rgb++)
             {
-                for (int i = 0; i < inH + 4; i++)
+                for (int i = 0; i < inH + full; i++)
                 {
-                    for (int j = 0; j < inW + 4; j++)
+                    for (int j = 0; j < inW + full; j++)
                     {
-                        if (i < 2 && j < 2)//왼쪽 위 모서리
+                        if (i < half && j < half)//왼쪽 위 모서리
                         {
                             tmpInput[rgb, i, j] = inputCopy[rgb, i, j];
                         }
-                        else if (i < 2 && j > inW + 1) //오른쪽 위 모서리
+                        else if (i < half && j > inW + half - 1) //오른쪽 위 모서리
                         {
-                            tmpInput[rgb, i, j] = inputCopy[rgb, i, j - 4];
+                            tmpInput[rgb, i, j] = inputCopy[rgb, i, j - full];
                         }
-                        else if (i < 2)//맨 위 2줄
+                        else if (i < half)//맨 위 2줄
                         {
                             tmpInput[rgb, i, j] = inputCopy[rgb, i, j - 2];
                         }
-                        else if (i > inH + 1 && j < 2)//왼쪽 아래 모서리
+                        else if (i > inH + half - 1 && j < half)//왼쪽 아래 모서리
                         {
-                            tmpInput[rgb, i, j] = inputCopy[rgb, i - 4, j];
+                            tmpInput[rgb, i, j] = inputCopy[rgb, i - full, j];
                         }
-                        else if (i > inH + 1 && j > inW + 1)//오른쪽 아래 모서리
+                        else if (i > inH + half - 1 && j > inW + half - 1)//오른쪽 아래 모서리
                         {
-                            tmpInput[rgb, i, j] = inputCopy[rgb, i - 4, j - 4];
+                            tmpInput[rgb, i, j] = inputCopy[rgb, i - full, j - full];
                         }
-                        else if (j < 2)//맨 왼쪽 2줄
+                        else if (j < half)//맨 왼쪽 2줄
                         {
-                            tmpInput[rgb, i, j] = inputCopy[rgb, i - 2, j];
+                            tmpInput[rgb, i, j] = inputCopy[rgb, i - half, j];
                         }
-                        else if (j > inW + 1)//맨 오른쪽 2줄
+                        else if (j > inW + half - 1)//맨 오른쪽 2줄
                         {
-                            tmpInput[rgb, i, j] = inputCopy[rgb, i - 2, j - 4];
+                            tmpInput[rgb, i, j] = inputCopy[rgb, i - half, j - full];
                         }
-                        else if (i > inH + 1)//맨 아래 2줄
+                        else if (i > inH + half - 1)//맨 아래 2줄
                         {
-                            tmpInput[rgb, i, j] = inputCopy[rgb, i - 4, j - 2];
+                            tmpInput[rgb, i, j] = inputCopy[rgb, i - full, j - half];
                         }
                         else
                         {
-                            tmpInput[rgb, i, j] = inputCopy[rgb, i - 2, j - 2];
+                            tmpInput[rgb, i, j] = inputCopy[rgb, i - half, j - half];
                         }
                     }
                 }
@@ -789,7 +791,8 @@ namespace Day015_01_color
                 }
             }
             //가장자리 처리
-            fillEdges(tmpInput, inputCopy);
+            int maskLength = mask.GetLength(0);
+            fillEdges(tmpInput, inputCopy, maskLength);
             //마스크연산
             maskOP(tmpInput, tmpOutput, mask);
             var findAvg = calculImage();
@@ -838,7 +841,8 @@ namespace Day015_01_color
                 }
             }
             //가장자리 처리
-            fillEdges(tmpInput, inputCopy);
+            int maskLength = mask.GetLength(0);
+            fillEdges(tmpInput, inputCopy, maskLength);
             //마스크 연산
             maskOP(tmpInput, tmpOutput, mask);
             //임시 출력 -> 원래 출력
@@ -876,7 +880,8 @@ namespace Day015_01_color
                 }
             }
             //가장자리 처리
-            fillEdges(tmpInput, inputCopy);
+            int maskLength = mask.GetLength(0);
+            fillEdges(tmpInput, inputCopy, maskLength);
             //마스크 연산
             maskOP(tmpInput, tmpOutput, mask);
             //임시 출력 -> 원래 출력
@@ -949,7 +954,8 @@ namespace Day015_01_color
                 }
             }
             //가장자리 처리
-            fillEdges(tmpInput, inputCopy);
+            int maskLength = 5;
+            fillEdges(tmpInput, inputCopy, maskLength);
             morphologyOP(tmpInput, tmpOutput, 1);
             //임시 출력 -> 원래 출력
             outCopy(tmpOutput);
@@ -978,7 +984,8 @@ namespace Day015_01_color
                 }
             }
             //가장자리 처리
-            fillEdges(tmpInput, inputCopy);
+            int maskLength = 5;
+            fillEdges(tmpInput, inputCopy, maskLength);
             morphologyOP(tmpInput, tmpOutput, 0);
             //임시 출력 -> 원래 출력
             outCopy(tmpOutput);
@@ -1007,12 +1014,13 @@ namespace Day015_01_color
                 }
             }
             //가장자리 처리
-            fillEdges(tmpInput, inputCopy);
+            int maskLength = 5;
+            fillEdges(tmpInput, inputCopy, maskLength);
             morphologyOP(tmpInput, tmpOutput, 1);
             //2번 가장차리 처리 연산을 위한 메모리 
             double[,,] outBufImage = new double[RGB, outH + 4, outW + 4];
             //가장자리 처리
-            fillEdges(outBufImage, tmpOutput);
+            fillEdges(outBufImage, tmpOutput, maskLength);
             morphologyOP(outBufImage, tmpOutput, 0);
             //임시 출력 -> 원래 출력
             outCopy(tmpOutput);
@@ -1041,12 +1049,13 @@ namespace Day015_01_color
                 }
             }
             //가장자리 처리
-            fillEdges(tmpInput, inputCopy);
+            int maskLength = 5;
+            fillEdges(tmpInput, inputCopy, maskLength);
             morphologyOP(tmpInput, tmpOutput, 0);
             //2번 가장차리 처리 연산을 위한 메모리 
             double[,,] outBufImage = new double[RGB, outH + 4, outW + 4];
             //가장자리 처리
-            fillEdges(outBufImage, tmpOutput);
+            fillEdges(outBufImage, tmpOutput, maskLength);
             morphologyOP(outBufImage, tmpOutput, 1);
             //임시 출력 -> 원래 출력
             outCopy(tmpOutput);
@@ -1090,7 +1099,8 @@ namespace Day015_01_color
             }
             displayImage();
             Delay(2000);
-            fillEdges(tmpInput, inputCopy);
+            int maskLength = 5;
+            fillEdges(tmpInput, inputCopy, maskLength);
             int sortSize = 5;
             byte[] medianSort = new byte[sortSize * sortSize];//정렬을 위한 1차원 배열
             //inImage 값이 아닌 노이즈가 생긴 tmpInput 값을 가져온다.
