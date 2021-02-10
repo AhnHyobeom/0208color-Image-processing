@@ -266,25 +266,9 @@ namespace Day015_01_color
                 undoList.Add(outImage);
             }
             // 벽, 게시판, 종이 크기 조절    900, 600
-            int paperH, paperW;
-            if(outH <= 900)
-            {
-                paperH = 900;
-            } else
-            {
-                paperH = outH;
-            }
-            if(outW <= 600)
-            {
-                paperW = 600;
-            } else
-            {
-                paperW = outW;
-            }
-            paper = new Bitmap(paperH, paperW); // 종이
-            pictureBox1.Size = new Size(paperH, paperW); // 캔버스
-            this.Size = new Size(paperH, paperW + 105); // 벽
-            int row = 0, col = 0;
+            paper = new Bitmap(outH, outW); // 종이
+            pictureBox1.Size = new Size(outH, outW); // 캔버스
+            this.Size = new Size(outH + 20, outW + 80); // 벽
             Color pen; // 펜(콕콕 찍을 용도)
             for (int i = 0; i < outH; i++)
             {
@@ -294,17 +278,7 @@ namespace Day015_01_color
                     byte g = outImage[GG,i, j]; // 잉크(색상값)
                     byte b = outImage[BB,i, j]; // 잉크(색상값)
                     pen = Color.FromArgb(r, g, b); // 펜에 잉크 묻히기
-                    row = i;
-                    col = j;
-                    if (outH <= 900)
-                    {
-                        row = i + (900 - outH) / 2;
-                    }
-                    if (outW <= 600)
-                    {
-                        col = j + (600 - outW) / 2;
-                    } 
-                    paper.SetPixel(row, col, pen); // 종이에 콕 찍기
+                    paper.SetPixel(i, j, pen); // 종이에 콕 찍기
                 }
             }
             pictureBox1.Image = paper; // 게시판에 종이를 붙이기.
