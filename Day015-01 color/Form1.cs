@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Drawing.Imaging;
+using MySql.Data.MySqlClient;
 
 namespace Day015_01_color
 {
@@ -19,6 +20,8 @@ namespace Day015_01_color
             InitializeComponent();
         }
         //전역 변수
+        public static byte[,,] dbImage;
+        public static int return_i_id;
         byte[,,] inImage = null, outImage = null;
         int inH, inW, outH, outW;
         string fileName;
@@ -28,7 +31,122 @@ namespace Day015_01_color
         int mouseSX, mouseSY, mouseEX, mouseEY;
         List<byte[,,]> undoList = new List<byte[,,]>();
         List<byte[,,]> redoList = new List<byte[,,]>();
+
+        String connStr = "Server=192.168.56.101;Uid=winuser;Pwd=4321;Database=image_db;Charset=UTF8";
+        MySqlConnection conn; // 교량
+        MySqlCommand cmd; // 트럭
+        String sql = "";  // 물건박스
+        MySqlDataReader reader; // 트럭이 가져올 끈
+        int openValue; // 0 DB로 오픈 1 일반 오픈
+
         //메뉴 이벤트 처리부
+        private void dB로열기ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            openValue = 0;
+            OpenDB odb = new OpenDB();
+            odb.ShowDialog();
+            if (odb.DialogResult != DialogResult.OK)
+                return;
+            inW = dbImage.GetLength(1);
+            inH = dbImage.GetLength(2);
+            inImage = new byte[RGB, inH, inW]; // 메모리 할당
+            for (int i = 0; i < inH; i++)
+            {
+                for (int j = 0; j < inW; j++)
+                {
+                    inImage[RR, i, j] = dbImage[RR, i, j];
+                    inImage[GG, i, j] = dbImage[GG, i, j];
+                    inImage[BB, i, j] = dbImage[BB, i, j];
+                }
+            }
+            equal_image();
+        }
+        private void dB로저장ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            /*
+              CREATE TABLE image (
+	            i_id INT NOT NULL PRIMARY KEY,		-- 랜덤하게 생성(PK).
+	            i_fname VARCHAR(50) NOT NULL,		-- 파일명
+	            i_extname VARCHAR(10) NOT NULL,		-- 확장명
+	            i_fsize BIGINT NOT NULL,			-- 파일 크기
+	            i_width INT NOT NULL,				-- 이미지 폭
+	            i_height INT NOT NULL,				-- 이미지 높이
+	            i_user VARCHAR(20)					-- 이미지 업로드 유저
+               );
+             */
+            // c:\\images\\pet_raw\\cat256_01.raw
+            String i_fname = "", i_extname = "";
+            long i_fsize = 0;
+            int i_width = 0, i_height = 0;
+            bitmap = new Bitmap(fileName);
+            // 중요! 입력이미지의 높이, 폭 알아내기
+            /*inW = bitmap.Height;
+            inH = bitmap.Width;*/
+            if (openValue == 1)
+            {
+                String[] tmp = fileName.Split('\\');
+                String tmp1 = tmp[tmp.Length - 1]; // cat256_01.raw
+                String[] tmp2 = tmp1.Split('.');
+                i_fname = tmp2[0];   //cat256_01
+                i_extname = tmp2[1]; //raw
+                i_fsize = new FileInfo(fileName).Length;
+                i_width = bitmap.Height;
+                i_height = bitmap.Width;
+            }
+            else
+            {
+                sql = "SELECT i_fname, i_extname, i_fsize, i_width, i_height FROM image WHERE i_id = " + return_i_id; // 짐 싸기
+                cmd.CommandText = sql;  // 짐을 트럭에 싣기
+                reader = cmd.ExecuteReader(); // 짐을 서버에 부어넣고, 끈으로 묶어서 끈만 가져옴.
+                while (reader.Read())
+                {
+                    i_fname = (String)reader["i_fname"];
+                    i_extname = (String)reader["i_extname"];
+                    i_fsize = (long)reader["i_fsize"];
+                    i_width = (int)reader["i_width"];
+                    i_height = (int)reader["i_height"];
+                }
+                reader.Close();
+            }
+            String i_user = "AHB";
+            Random rnd = new Random();
+            int i_id = rnd.Next(0, int.MaxValue);
+            // 이미지 테이블(부모 테이블)에 INSERT
+            sql = "INSERT INTO image(i_id, i_fname, i_extname, i_fsize, i_width, i_height, i_user) VALUES (";
+            sql += i_id + ", '" + i_fname + "', '" + i_extname + "', " + i_fsize + ", ";
+            sql += i_width + ", " + i_height + ", '" + i_user + "')";
+            cmd = new MySqlCommand("", conn);
+            cmd.CommandText = sql;  // 짐을 트럭에 싣기
+            cmd.ExecuteNonQuery();
+            //RAW 파일을 열어서 pixel 테이블에 INSERT
+            /*CREATE TABLE pixel(
+              i_id INT NOT NULL, --이미지 파일 아이디(FK)
+              p_row INT NOT NULL, --행 위치
+              p_col INT NOT NULL, --열 위치
+              p_valueR TINYINT UNSIGNED NOT NULL,	-- 픽셀값
+	          p_valueG TINYINT UNSIGNED NOT NULL,	-- 픽셀값
+	          p_valueB TINYINT UNSIGNED NOT NULL,	-- 픽셀값
+              FOREIGN KEY(i_id) REFERENCES image(i_id)
+            );*/
+            int p_row, p_col, p_valueR, p_valueG, p_valueB;
+            cmd = new MySqlCommand("", conn);
+            for (int i = 0; i < i_width; i++)
+            {
+                for (int k = 0; k < i_height; k++)
+                {
+                    p_row = i;
+                    p_col = k;
+                    p_valueR = (int)outImage[RR, i, k];
+                    p_valueG= (int)outImage[GG, i, k];
+                    p_valueB = (int)outImage[BB, i, k];
+                    sql = "INSERT INTO pixel(i_id, p_row, p_col, p_valueR, p_valueG, p_valueB) VALUES(";
+                    sql += i_id + ", " + p_row + ", " + p_col + ", " + p_valueR + ", " + p_valueG + ", " + p_valueB + ")";
+                    cmd.CommandText = sql;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            MessageBox.Show(fileName + "입력 완료");
+        }
         private void 채도변경ToolStripMenuItem_Click(object sender, EventArgs e)
         {
             change_satur();
@@ -201,6 +319,7 @@ namespace Day015_01_color
         }
         void openImage()
         {
+            openValue = 1;
             OpenFileDialog ofd = new OpenFileDialog();  // 객체 생성
             ofd.DefaultExt = "";
             ofd.Filter = "칼라 필터 | *.png;*.jpg;*.bmp;*.tif;";
@@ -268,7 +387,7 @@ namespace Day015_01_color
             // 벽, 게시판, 종이 크기 조절    900, 600
             paper = new Bitmap(outH, outW); // 종이
             pictureBox1.Size = new Size(outH, outW); // 캔버스
-            this.Size = new Size(outH + 20, outW + 80); // 벽
+            this.Size = new Size(900, 600); // 벽
             Color pen; // 펜(콕콕 찍을 용도)
             for (int i = 0; i < outH; i++)
             {
@@ -934,6 +1053,16 @@ namespace Day015_01_color
             //임시 출력 -> 원래 출력
             outCopy(tmpOutput);
             displayImage();
+        }
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            conn = new MySqlConnection(connStr);
+            conn.Open();
+            cmd = new MySqlCommand("", conn);
+        }
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            conn.Close();
         }
         void dilation()
         {
