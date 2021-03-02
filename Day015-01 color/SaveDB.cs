@@ -50,7 +50,6 @@ namespace Day015_01_color
             cmd.CommandText = sql;  // 짐을 트럭에 싣기
             cmd.ExecuteNonQuery();
             int p_row, p_col, p_valueR, p_valueG, p_valueB;
-            progressBar1.Maximum = i_width * i_height;
             progressBar1.Value = 0;
             cmd = new MySqlCommand("", conn);
             progressBar1.Maximum = (int)i_fsize;
@@ -81,10 +80,16 @@ namespace Day015_01_color
                             lb_ing.Refresh();
                         }
                     }
+
                 }
             }
             this.DialogResult = DialogResult.OK;
         }
+        /*public string LabelText
+        {
+            get { return lb_ing.Text; }
+            set { lb_ing.Text = value; }
+        }*/
         private void SaveDB_Load(object sender, EventArgs e)
         {
             conn = new MySqlConnection(connStr);
